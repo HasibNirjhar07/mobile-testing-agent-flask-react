@@ -679,9 +679,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/mobile-testing-agent-ai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/mobile-testing-agent-ai/discussions)
-- **Email**: support@example.com
+- **Issues**: [GitHub Issues](https://github.com/yourusername/mobile-testing-agent-flask-react/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hasibnirjhar07/mobile-testing-agent-flask-react/discussions)
+- **Email**: hasibnirjhar100@gmail.com
 
 ---
 
@@ -702,14 +702,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📈 Stats
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/mobile-testing-agent-ai)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/mobile-testing-agent-ai)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/mobile-testing-agent-ai)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/mobile-testing-agent-ai)
-
----
 
 <div align="center">
 
