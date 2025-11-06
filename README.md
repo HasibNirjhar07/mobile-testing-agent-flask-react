@@ -134,7 +134,7 @@ The **AI Mobile Testing Agent** is an intelligent automation framework that leve
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/mobile-testing-agent-ai.git
+git clone https://github.com/hasibnirjhar07/mobile-testing-agent-ai.git
 cd mobile-testing-agent-ai
 ```
 
@@ -238,24 +238,17 @@ export const API_BASE_URL = 'http://localhost:5000';
 
 ### Quick Start
 
-1. **Start Appium Server** (Terminal 1)
-   ```bash
-   appium
-   ```
-
-2. **Start Backend API** (Terminal 2)
+1. **Start Backend API** (Terminal 2)
    ```bash
    python api_server.py
    ```
 
-3. **Start Frontend** (Terminal 3)
+2. **Start Frontend** (Terminal 3)
    ```bash
    cd frontend
    npm start
    ```
 
-4. **Open Browser**
-   - Navigate to: `http://localhost:3000`
 
 ### Step-by-Step Testing
 
