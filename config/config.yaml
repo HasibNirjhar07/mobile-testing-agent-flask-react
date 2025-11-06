@@ -1,0 +1,38 @@
+# Emulator Configuration
+emulator:
+  name: "test_device"
+  port: 5554
+  wait_timeout: 240  # seconds to wait for emulator to boot
+
+# ADB Configuration
+adb:
+  path: "adb"  # or full path like "C:/Android/sdk/platform-tools/adb.exe"
+  device_id: "emulator-5554"
+
+# Testing Configuration
+testing:
+  max_exploration_depth: 10
+  max_clicks_per_screen: 20
+  screenshot_delay: 1  # seconds
+  exploration_timeout: 1800  # 30 minutes max
+  test_login: true
+  test_forms: true
+  test_navigation: true
+
+# UI Exploration Strategy
+exploration:
+  strategy: "hybrid"  # options: random, bfs, dfs, hybrid
+  prioritize_new_screens: true
+  avoid_back_button_loops: true
+
+# Report Configuration
+report:
+  output_dir: "reports"
+  include_screenshots: true
+  screenshot_dir: "screenshots"
+  format: "html"  # options: html, pdf, json
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "testing_agent.log"

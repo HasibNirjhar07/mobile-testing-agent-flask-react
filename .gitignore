@@ -1,0 +1,81 @@
+# ============================================
+# Python / Flask
+# ============================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.db
+*.sqlite3
+
+# Virtual envs
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+
+# Flask specific
+instance/
+uploads/
+reports/
+screenshots/
+api_server.log
+*.log
+
+# ============================================
+# Node / React (frontend folder)
+# ============================================
+# node modules for the frontend only
+frontend/node_modules/
+
+# React build output and local env
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# package manager logs / lockfiles (optional to ignore lockfile)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ============================================
+# Project config / generated files
+# ============================================
+dist/
+.cache/
+coverage/
+
+# ============================================
+# IDEs, editors, OS files
+# ============================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ============================================
+# Temporary / misc
+# ============================================
+*.tmp
+*.bak
+*.old
+temp_hierarchy.xml
+
+# ============================================
+# Optional: ignore scripts / generated artifacts
+# ============================================
+# Uncomment if you don't want to commit built frontend pack or logs at repo root
+# build/
+# api_server.log
