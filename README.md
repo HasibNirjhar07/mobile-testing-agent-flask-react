@@ -134,7 +134,7 @@ The **AI Mobile Testing Agent** is an intelligent automation framework that leve
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/hasibnirjhar07/mobile-testing-agent-ai.git
+git clone https://github.com/hasibnirjhar07/mobile-testing-agent-flask-react.git
 cd mobile-testing-agent-ai
 ```
 
