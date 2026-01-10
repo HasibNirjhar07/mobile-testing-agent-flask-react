@@ -8,9 +8,8 @@ import {
   ExternalLink,
   Search,
   AlertTriangle,
-  XCircle,
-  Clock
 } from 'lucide-react';
+import clsx from 'clsx';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -89,25 +88,29 @@ const WebTest = () => {
   };
 
   return (
-    <div className="p-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Globe className="text-blue-600" /> Web Site Testing
-        </h1>
-        <p className="text-gray-600">Automated smoke testing & issue detection</p>
-      </header>
-      
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Header with Title */}
+      <div className="flex items-center justify-between pb-6 border-b border-white/5">
+         <div>
+            <h2 className="text-2xl font-serif text-white mb-2">Web Application Scanner</h2>
+            <p className="font-mono text-zinc-500 text-xs uppercase tracking-wider">Playwright // Headless Chromium</p>
+         </div>
+      </div>
+
       {/* Input Section */}
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 mb-8">
-        <form onSubmit={startTest} className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
+      <div className="glass-panel p-8 rounded-2xl relative overflow-hidden">
+        {/* Glow effect behind */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-electric-blue/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+        <form onSubmit={startTest} className="flex gap-4 relative z-10">
+          <div className="flex-1 relative group">
+            <Search className="absolute left-4 top-4 text-zinc-500 group-focus-within:text-electric-blue transition-colors" size={20} />
             <input 
               type="url" 
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter website URL (e.g. https://example.com)"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="Enter target URL (e.g. https://example.com)"
+              className="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:ring-1 focus:ring-electric-blue focus:border-electric-blue outline-none transition-all font-mono text-sm"
               required
               disabled={testing}
             />
@@ -115,80 +118,92 @@ const WebTest = () => {
           <button 
             type="submit" 
             disabled={testing}
-            className={`px-6 py-3 rounded-lg font-semibold text-white flex items-center gap-2 transition-colors ${
-              testing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className={clsx(
+              "px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all duration-300 shadow-lg",
+              testing 
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                : "bg-electric-blue text-white hover:shadow-[0_0_20px_rgba(41,84,255,0.4)] hover:scale-[1.02]"
+            )}
           >
-            {testing ? <Loader className="animate-spin" size={20} /> : <Play size={20} />}
-            {testing ? 'Scanning...' : 'Start Scan'}
+            {testing ? <Loader className="animate-spin" size={20} /> : <Play size={20} fill="currentColor" />}
+            {testing ? 'SCANNING...' : 'START SCAN'}
           </button>
         </form>
+
         {testing && (
-          <div className="mt-6">
-             <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>{testMessage}</span>
+          <div className="mt-8">
+             <div className="flex justify-between text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wide">
+                <span className="flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-electric-blue animate-pulse"></div>
+                   {testMessage}
+                </span>
                 <span>{testProgress}%</span>
              </div>
-             <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${testProgress}%` }}></div>
+             <div className="w-full bg-black/40 rounded-full h-1 overflow-hidden border border-white/5">
+                <div className="bg-electric-blue h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(41,84,255,0.5)]" style={{ width: `${testProgress}%` }}></div>
              </div>
           </div>
         )}
+
         {error && (
-           <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
-             <AlertCircle size={20} /> {error}
+           <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl flex items-center gap-3">
+             <AlertCircle size={20} className="text-red-500" /> 
+             <span className="font-mono text-sm">{error}</span>
            </div>
         )}
       </div>
 
       {/* Results Section */}
       {results && results.pages && (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
-                <div className="text-2xl font-bold text-gray-900">{results.summary.total_pages}</div>
-                <div className="text-xs text-gray-500 uppercase font-semibold">Pages Explored</div>
+             <div className="bg-noir-800/40 border border-white/5 p-5 rounded-xl text-center">
+                <div className="text-3xl font-mono font-bold text-white mb-1">{results.summary.total_pages}</div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">Pages Explored</div>
              </div>
-             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
-                <div className="text-2xl font-bold text-red-600">{results.summary.total_issues}</div>
-                <div className="text-xs text-gray-500 uppercase font-semibold">Issues Found</div>
+             <div className="bg-noir-800/40 border border-white/5 p-5 rounded-xl text-center">
+                <div className="text-3xl font-mono font-bold text-red-400 mb-1">{results.summary.total_issues}</div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">Issues Detected</div>
              </div>
-             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
-                <div className="text-2xl font-bold text-blue-600">{results.duration?.toFixed(1)}s</div>
-                <div className="text-xs text-gray-500 uppercase font-semibold">Total Duration</div>
+             <div className="bg-noir-800/40 border border-white/5 p-5 rounded-xl text-center">
+                <div className="text-3xl font-mono font-bold text-electric-blue mb-1">{results.duration?.toFixed(1)}s</div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">Duration</div>
              </div>
-             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
-                <div className="text-2xl font-bold text-green-600">Completed</div>
-                <div className="text-xs text-gray-500 uppercase font-semibold">Status</div>
+             <div className="bg-noir-800/40 border border-white/5 p-5 rounded-xl text-center">
+                <div className="text-3xl font-mono font-bold text-emerald-400 mb-1">OK</div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">System Status</div>
              </div>
           </div>
 
-          <h3 className="text-xl font-bold text-gray-900 border-l-4 border-blue-600 pl-3">Detailed Page Analysis</h3>
+          <div className="font-mono text-xs text-zinc-500 uppercase tracking-widest border-l-2 border-electric-blue pl-4">
+              Detailed Analysis Report
+          </div>
 
           {/* Page Cards */}
-          <div className="grid gap-8">
+          <div className="grid gap-6">
             {results.pages.map((page, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div key={index} className="glass-panel overflow-hidden rounded-xl hover:border-white/10 transition-colors group">
                 
                 {/* Card Header */}
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 truncate max-w-md" title={page.title || page.url}>
+                <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-white truncate text-lg font-serif" title={page.title || page.url}>
                       {page.title || 'Untitled Page'}
                     </h4>
-                    <a href={page.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                    <a href={page.url} target="_blank" rel="noopener noreferrer" className="text-xs font-mono text-electric-blue hover:underline flex items-center gap-1 mt-1 truncate">
                       {page.url} <ExternalLink size={10} />
                     </a>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 ml-4">
                     {page.issues.length > 0 ? (
-                      <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
+                      <span className="bg-red-500/20 border border-red-500/30 text-red-300 text-xs px-3 py-1 rounded-full font-mono uppercase tracking-wide">
                         {page.issues.length} Issues
                       </span>
                     ) : (
-                      <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1">
-                        <CheckCircle size={12} /> Clean
+                      <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs px-3 py-1 rounded-full font-mono uppercase tracking-wide flex items-center gap-1">
+                        <CheckCircle size={10} /> Clean
                       </span>
                     )}
                   </div>
@@ -197,38 +212,40 @@ const WebTest = () => {
                 <div className="flex flex-col lg:flex-row">
                   {/* Screenshot Column */}
                   {page.screenshot && (
-                    <div className="lg:w-1/2 border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-100 relative group">
+                    <div className="lg:w-1/2 border-b lg:border-b-0 lg:border-r border-white/5 relative group/img bg-black/50">
                       <img 
                         src={`${API_BASE_URL}/screenshots/${page.screenshot}`} 
                         alt={`Screenshot of ${page.url}`} 
-                        className="w-full h-auto object-cover block"
+                        className="w-full h-auto object-cover opacity-80 group-hover/img:opacity-100 transition-opacity"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer" 
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm cursor-pointer"
                            onClick={() => window.open(`${API_BASE_URL}/screenshots/${page.screenshot}`, '_blank')}>
-                         <span className="bg-white/90 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">View Fullsize</span>
+                         <button className="px-4 py-2 bg-white text-black font-bold rounded-full text-xs uppercase tracking-wide hover:scale-105 transition-transform">
+                             Enlarge Verification
+                         </button>
                       </div>
                     </div>
                   )}
 
                   {/* Issues Column */}
-                  <div className="lg:w-1/2 p-6 max-h-[400px] overflow-y-auto">
+                  <div className="lg:w-1/2 p-6 max-h-[300px] overflow-y-auto custom-scrollbar">
                     {page.issues.length > 0 ? (
                       <div className="space-y-3">
                         {page.issues.map((issue, i) => (
-                          <div key={i} className="flex gap-3 p-3 bg-red-50/50 rounded-lg border border-red-100 text-sm">
-                            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={16} />
+                          <div key={i} className="flex gap-3 p-3 bg-red-500/5 rounded-lg border border-red-500/10 text-sm hover:bg-red-500/10 transition-colors">
+                            <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={14} />
                             <div className="overflow-hidden">
-                              <div className="font-bold text-red-800 text-xs uppercase mb-0.5">{issue.type}</div>
-                              <div className="text-gray-800 break-words">{issue.text || issue.message || issue.error || `Status: ${issue.status}`}</div>
-                              {issue.url && <div className="text-gray-500 text-xs mt-1 truncate">{issue.url}</div>}
+                              <div className="font-bold text-red-300 text-xs font-mono uppercase mb-1">{issue.type}</div>
+                              <div className="text-zinc-300 text-xs break-words">{issue.text || issue.message || issue.error || `Status: ${issue.status}`}</div>
+                              {issue.url && <div className="text-zinc-500 text-[10px] font-mono mt-1 truncate">{issue.url}</div>}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-gray-400 py-10">
-                        <CheckCircle size={40} className="mb-3 text-gray-200" />
-                        <p className="text-sm">No console errors or broken links detected.</p>
+                      <div className="h-full flex flex-col items-center justify-center text-zinc-600 py-10">
+                        <CheckCircle size={32} className="mb-2 opacity-20" />
+                        <p className="text-xs font-mono uppercase tracking-widest">No Integrity Violations</p>
                       </div>
                     )}
                   </div>

@@ -10,6 +10,7 @@ import {
   Loader,
   RefreshCw,
 } from 'lucide-react';
+import clsx from 'clsx';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -19,12 +20,7 @@ const MobileTest = () => {
   const [sessionId, setSessionId] = useState(null);
   const [apkFilepath, setApkFilepath] = useState(null);
   const [testMode, setTestMode] = useState('auto');
-  const [credentials, setCredentials] = useState({
-    hasLogin: false,
-    username: '',
-    password: '',
-    email: '',
-  });
+  const [credentials, setCredentials] = useState({ hasLogin: false, username: '', password: '', email: '' });
   const [testContext, setTestContext] = useState('');
   const [aiInstructions, setAiInstructions] = useState('');
   const [testing, setTesting] = useState(false);
@@ -60,10 +56,7 @@ const MobileTest = () => {
         }
       }, 2000);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [testing, sessionId]);
 
   const handleFileUpload = async (e) => {
@@ -105,7 +98,7 @@ const MobileTest = () => {
         }
       });
 
-      xhr.addEventListener('error', () => {
+      xhr.addListener && xhr.addEventListener('error', () => { // Fixed typo listener -> addEventListener
         setError('Upload failed. Please check your connection.');
         setUploadProgress(0);
       });
@@ -127,7 +120,7 @@ const MobileTest = () => {
     setError(null);
     setTesting(true);
     setTestProgress(0);
-    setTestMessage('Initializing...');
+    setTestMessage('Initializing AI core...');
 
     try {
       const testData = {
@@ -138,11 +131,9 @@ const MobileTest = () => {
         ai_instructions: aiInstructions,
       };
 
-      if (apkFilepath) {
-        testData.apk_filepath = apkFilepath;
-      }
+      if (apkFilepath) testData.apk_filepath = apkFilepath;
 
-      const response = await fetch(`${API_BASE_URL}/api/mobile/start`, { // Updated endpoint
+      const response = await fetch(`${API_BASE_URL}/api/mobile/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testData),
@@ -159,82 +150,68 @@ const MobileTest = () => {
     }
   };
 
-  const downloadReport = () => {
-    if (sessionId) window.open(`${API_BASE_URL}/api/report/${sessionId}`, '_blank');
-  };
-
-  const viewReport = () => {
-    if (sessionId) window.open(`${API_BASE_URL}/api/report/view/${sessionId}`, '_blank');
-  };
-
+  const downloadReport = () => { if (sessionId) window.open(`${API_BASE_URL}/api/report/${sessionId}`, '_blank'); };
+  const viewReport = () => { if (sessionId) window.open(`${API_BASE_URL}/api/report/view/${sessionId}`, '_blank'); };
+  
   const resetTest = () => {
-    setStep(1);
-    setApkFile(null);
-    setSessionId(null);
-    setApkFilepath(null);
-    setTestResults(null);
-    setTestMode('auto');
-    setCredentials({ hasLogin: false, username: '', password: '', email: '' });
-    setTestContext('');
-    setAiInstructions('');
-    setError(null);
+    setStep(1); setApkFile(null); setSessionId(null); setApkFilepath(null);
+    setTestResults(null); setTestMode('auto'); setCredentials({ hasLogin: false, username: '', password: '', email: '' });
+    setTestContext(''); setAiInstructions(''); setError(null);
   };
 
   return (
-    <div className="p-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Brain className="text-indigo-600" /> Mobile App Testing
-        </h1>
-        <p className="text-gray-600">Upload an APK to start AI-powered testing</p>
-      </header>
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-6 border-b border-white/5">
+         <div>
+            <h2 className="text-2xl font-serif text-white mb-2">Android Autonomous Agent</h2>
+            <p className="font-mono text-zinc-500 text-xs uppercase tracking-wider">Powered by Gemini 1.5 Pro</p>
+         </div>
+         {/* Steps Indicator */}
+         <div className="flex items-center gap-2">
+            {[1, 2, 3, 4].map(s => (
+               <div key={s} className={clsx("w-2 h-2 rounded-full transition-colors", step >= s ? "bg-electric-purple" : "bg-zinc-800")} />
+            ))}
+         </div>
+      </div>
       
       {/* Error Banner */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-          <AlertCircle className="text-red-500 mt-0.5 mr-3 flex-shrink-0" size={20} />
-          <div className="flex-1">
-            <p className="font-medium text-red-800">Error</p>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="text-red-500 mt-1 shrink-0" size={20} />
+          <div>
+            <p className="font-mono text-red-300 font-bold mb-1">[SYSTEM ERROR]</p>
+            <p className="text-sm text-zinc-400">{error}</p>
           </div>
-          <button onClick={() => setError(null)} className="text-gray-500 hover:text-gray-700">✕</button>
+          <button onClick={() => setError(null)} className="ml-auto text-zinc-500 hover:text-white">✕</button>
         </div>
       )}
 
-      {/* Progress Steps */}
-      <div className="flex justify-center mb-10">
-        <div className="flex items-center gap-3">
-          {[1, 2, 3, 4].map((s) => (
-            <React.Fragment key={s}>
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= s ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'
-                }`}
-              >
-                {s}
-              </div>
-              {s < 4 && <div className={`w-8 h-0.5 ${step > s ? 'bg-indigo-600' : 'bg-gray-200'}`} />}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-
-       <main className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-6 md:p-8">
+       <main className="glass-panel rounded-2xl p-8 relative overflow-hidden min-h-[400px]">
           {/* Step 1: Upload APK */}
           {step === 1 && (
-            <div className="text-center">
-              <Upload className="mx-auto mb-4 text-gray-500" size={48} />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Upload APK File</h2>
-              <label className="cursor-pointer block mt-6">
-                <div className={`border-2 border-dashed rounded-lg p-10 transition-colors ${uploadProgress > 0 ? 'border-indigo-300 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'}`}>
+            <div className="flex flex-col items-center justify-center h-full py-12">
+              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 animate-pulse-fast">
+                 <Upload className="text-electric-purple" size={32} />
+              </div>
+              <h2 className="text-2xl font-serif text-white mb-2">Initialize Payload</h2>
+              <p className="text-zinc-500 mb-8 max-w-sm text-center">Drag and drop your .apk file to begin the analysis sequence.</p>
+              
+              <label className="cursor-pointer group">
+                <div className={clsx(
+                   "w-[400px] border-2 border-dashed rounded-xl p-10 transition-all duration-300 text-center relative",
+                   uploadProgress > 0 ? "border-electric-purple bg-electric-purple/5" : "border-white/10 hover:border-electric-purple hover:bg-white/5"
+                )}>
                   {uploadProgress > 0 ? (
                     <div>
-                      <Loader className="mx-auto mb-3 text-indigo-600 animate-spin" size={32} />
-                      <p className="font-medium text-gray-800">Uploading... {uploadProgress}%</p>
+                      <Loader className="mx-auto mb-4 text-electric-purple animate-spin" size={32} />
+                      <div className="font-mono text-electric-purple text-lg">{uploadProgress}%</div>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-gray-700 font-medium">{apkFile ? apkFile.name : 'Click to upload APK'}</p>
+                      <p className="text-zinc-300 font-medium group-hover:text-white transition-colors">
+                         {apkFile ? apkFile.name : 'Select APK File'}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -245,95 +222,109 @@ const MobileTest = () => {
 
           {/* Step 2: Configuration */}
           {step === 2 && (
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Test Configuration</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="animate-in fade-in slide-in-from-right-4">
+              <h2 className="text-xl font-serif text-white mb-6">Mission Configuration</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 {[
-                  { id: 'auto', title: 'Fully Automated', desc: 'AI handles all decisions', icon: Brain },
-                  { id: 'guided', title: 'Guided Testing', desc: 'Provide context', icon: Settings },
-                  { id: 'custom', title: 'Custom Instructions', desc: 'Detailed AI prompts', icon: AlertCircle },
+                  { id: 'auto', title: 'Auto-Pilot', desc: 'Full autonomy', icon: Brain },
+                  { id: 'guided', title: 'Guided', desc: 'Context aware', icon: Settings },
+                  { id: 'custom', title: 'Manual Override', desc: 'Specific prompts', icon: AlertCircle },
                 ].map((mode) => (
                   <button
                     key={mode.id}
                     onClick={() => setTestMode(mode.id)}
-                    className={`p-4 text-left border rounded-lg ${testMode === mode.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'}`}
+                    className={clsx(
+                      "p-4 text-left border rounded-xl transition-all duration-300 relative overflow-hidden group",
+                      testMode === mode.id ? "border-electric-purple bg-electric-purple/10" : "border-white/10 hover:bg-white/5"
+                    )}
                   >
-                    <div className="flex items-start gap-3">
-                      <mode.icon className={`mt-0.5 ${testMode === mode.id ? 'text-indigo-600' : 'text-gray-500'}`} size={20} />
-                      <div>
-                        <h3 className="font-medium text-gray-900">{mode.title}</h3>
-                        <p className="text-sm text-gray-600">{mode.desc}</p>
-                      </div>
+                    <div className="relative z-10 flex flex-col h-full">
+                       <mode.icon className={clsx("mb-3", testMode === mode.id ? "text-electric-purple" : "text-zinc-500")} size={24} />
+                       <h3 className="font-mono font-bold text-white text-sm mb-1">{mode.title}</h3>
+                       <p className="text-xs text-zinc-500">{mode.desc}</p>
                     </div>
                   </button>
                 ))}
               </div>
               
-              {/* Credentials & Context Fields (Simplified for brevity but functional) */}
-              
-              <div className="flex gap-3 pt-4">
-                <button onClick={() => setStep(1)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Back</button>
-                <button onClick={() => setStep(3)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex-1">Continue</button>
+              <div className="flex gap-4 pt-4 border-t border-white/5">
+                <button onClick={() => setStep(1)} className="px-6 py-3 text-zinc-400 hover:text-white transition-colors">BACK</button>
+                <div className="flex-1"></div>
+                <button onClick={() => setStep(3)} className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors">CONTINUE</button>
               </div>
             </div>
           )}
 
           {/* Step 3: Confirmation */}
           {step === 3 && !testing && (
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Confirm & Start</h2>
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <p><strong>APK:</strong> {apkFile?.name}</p>
-                <p><strong>Mode:</strong> {testMode}</p>
+            <div className="max-w-md mx-auto py-12 text-center animate-in zoom-in-95">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <CheckCircle className="text-emerald-500" size={32} />
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setStep(2)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Back</button>
-                <button onClick={startTesting} className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex-1 flex items-center justify-center gap-2"><Play size={16} /> Start Test</button>
+              <h2 className="text-2xl font-serif text-white mb-2">Ready for Launch</h2>
+              <div className="font-mono text-zinc-500 text-sm mb-8">Target: {apkFile?.name}</div>
+              
+              <div className="flex gap-4 justify-center">
+                <button onClick={() => setStep(2)} className="px-6 py-3 text-zinc-400 hover:text-white">Back</button>
+                <button 
+                  onClick={startTesting} 
+                  className="px-8 py-3 bg-electric-purple text-white font-bold rounded-lg hover:shadow-[0_0_20px_rgba(189,0,255,0.4)] transition-all flex items-center gap-2"
+                >
+                  <Play size={18} fill="currentColor" /> ENABLE AGENT
+                </button>
               </div>
             </div>
           )}
 
           {/* Testing Progress */}
           {testing && (
-            <div className="text-center py-8">
-              <Loader className="mx-auto mb-4 text-indigo-600 animate-spin" size={40} />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">AI Testing in Progress</h2>
-              <p className="text-gray-600 mb-6">{testMessage}</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-indigo-600 h-2 rounded-full transition-all duration-500" style={{ width: `${testProgress}%` }} />
+            <div className="text-center py-20">
+              <div className="relative w-24 h-24 mx-auto mb-8">
+                 <div className="absolute inset-0 border-4 border-zinc-800 rounded-full"></div>
+                 <div className="absolute inset-0 border-4 border-electric-purple border-t-transparent rounded-full animate-spin"></div>
+                 <Brain className="absolute inset-0 m-auto text-white animate-pulse" size={32} />
               </div>
+              <h2 className="text-xl font-mono text-white mb-2 uppercase tracking-widest">{testMessage}</h2>
+              <p className="text-zinc-500 font-mono text-xs">Analyzing application logic...</p>
             </div>
           )}
 
           {/* Step 4: Results */}
           {step === 4 && testResults && (
-            <div>
-              <div className="text-center mb-6">
-                <CheckCircle className="mx-auto mb-3 text-green-600" size={48} />
-                <h2 className="text-xl font-semibold text-gray-900">Testing Complete</h2>
+            <div className="animate-in slide-in-from-bottom-8">
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="text-emerald-500" size={24} />
+                 </div>
+                 <div>
+                    <h2 className="text-xl font-serif text-white">Analysis Complete</h2>
+                    <p className="text-zinc-500 text-sm">Session ID: {sessionId?.slice(0,8)}</p>
+                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 bg-gray-50 rounded-lg text-center"><p className="text-lg font-bold">{testResults.total_tests}</p><p className="text-xs text-gray-600">Tests</p></div>
-                <div className="p-4 bg-green-50 rounded-lg text-center"><p className="text-lg font-bold text-green-600">{testResults.passed}</p><p className="text-xs text-gray-600">Passed</p></div>
-                <div className="p-4 bg-red-50 rounded-lg text-center"><p className="text-lg font-bold text-red-600">{testResults.failed}</p><p className="text-xs text-gray-600">Failed</p></div>
-                <div className="p-4 bg-gray-50 rounded-lg text-center"><p className="text-lg font-bold">{testResults.screens_explored}</p><p className="text-xs text-gray-600">Screens</p></div>
+
+              <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="p-4 bg-white/5 rounded-xl text-center border border-white/5"><div className="text-2xl font-mono text-white mb-1">{testResults.total_tests}</div><div className="text-[10px] text-zinc-500 uppercase tracking-widest">Total Tests</div></div>
+                <div className="p-4 bg-white/5 rounded-xl text-center border border-emerald-500/20"><div className="text-2xl font-mono text-emerald-400 mb-1">{testResults.passed}</div><div className="text-[10px] text-zinc-500 uppercase tracking-widest">Passed</div></div>
+                <div className="p-4 bg-white/5 rounded-xl text-center border border-red-500/20"><div className="text-2xl font-mono text-red-400 mb-1">{testResults.failed}</div><div className="text-[10px] text-zinc-500 uppercase tracking-widest">Failed</div></div>
+                <div className="p-4 bg-white/5 rounded-xl text-center border border-white/5"><div className="text-2xl font-mono text-electric-purple mb-1">{testResults.screens_explored}</div><div className="text-[10px] text-zinc-500 uppercase tracking-widest">Screens</div></div>
               </div>
+
                {testResults.ai_insights && (
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-1.5">
-                      <Brain size={16} className="text-indigo-600" /> AI Insights
+                  <div className="mb-8 p-6 bg-electric-purple/5 border border-electric-purple/20 rounded-xl">
+                    <h3 className="font-mono text-electric-purple mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
+                       <Brain size={14} /> Agent Intelligence Report
                     </h3>
-                    <p className="text-sm text-gray-700 whitespace-pre-line">
-                      {testResults.ai_insights.length > 400
-                        ? testResults.ai_insights.substring(0, 400) + '…'
-                        : testResults.ai_insights}
+                    <p className="text-zinc-300 leading-relaxed font-light">
+                      {testResults.ai_insights}
                     </p>
                   </div>
                 )}
-              <div className="flex gap-3">
-                <button onClick={resetTest} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg flex items-center gap-2"><RefreshCw size={16}/> New Test</button>
-                <button onClick={viewReport} className="px-4 py-2 bg-gray-900 text-white rounded-lg flex-1">View Report</button>
-                <button onClick={downloadReport} className="px-4 py-2 bg-indigo-600 text-white rounded-lg"><Download size={16}/></button>
+
+              <div className="flex gap-4">
+                <button onClick={resetTest} className="px-6 py-3 bg-white/5 text-white rounded-lg hover:bg-white/10 flex items-center gap-2"><RefreshCw size={16}/> NEW SESSION</button>
+                <div className="flex-1"></div>
+                <button onClick={viewReport} className="px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200">VIEW FULL REPORT</button>
+                <button onClick={downloadReport} className="p-3 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700"><Download size={20}/></button>
               </div>
             </div>
           )}
