@@ -2,8 +2,10 @@
 Flask Backend API for Local AI Testing Platform
 Supports Mobile (Appium) and Web (Playwright) Agents
 """
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory, Response
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
+import subprocess
 import os
 import yaml
 import threading
@@ -14,6 +16,38 @@ import json
 import time
 import traceback
 from loguru import logger
+
+# Fix for missing ANDROID_HOME environment variable
+if not os.environ.get('ANDROID_HOME'):
+    # Common Default Paths for Windows
+    possible_paths = [
+        r'C:\Users\hasib\AppData\Local\Android\Sdk',  # Specific user path found
+        os.path.expanduser('~\\AppData\\Local\\Android\\Sdk'),  # Generic user path
+        r'C:\Program Files\Android\Android Studio\plugins\android\lib\sdk' # Another common path
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            os.environ['ANDROID_HOME'] = path
+            logger.info(f"Automatically set ANDROID_HOME to: {path}")
+            
+            # Also add platform-tools and emulator to PATH if not present
+            updates = [
+                os.path.join(path, 'platform-tools'),
+                os.path.join(path, 'emulator'),
+                os.path.join(path, 'tools'),
+                os.path.join(path, 'build-tools') # Just the root, specific versions might be hard to guess
+            ]
+            
+            current_path = os.environ.get('PATH', '')
+            for update in updates:
+                if os.path.exists(update) and update not in current_path:
+                    os.environ['PATH'] = update + os.pathsep + current_path
+            
+            break
+
+    if not os.environ.get('ANDROID_HOME'):
+         logger.warning("ANDROID_HOME not found in common locations. Please set it manually.")
 
 # Import Mobile Agent Modules
 from agents.mobile.emulator_manager import EmulatorManager
@@ -34,11 +68,13 @@ except ImportError:
     AI_AVAILABLE = False
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Configure CORS
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:3000", "http://localhost:3001"],
+        "origins": "*",
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
@@ -150,6 +186,39 @@ def upload_apk():
 # MOBILE TESTING ENDPOINTS
 # ==========================================
 
+def gen_frames():
+    """Video streaming generator function."""
+    config = _get_default_config()
+    device_id = config.get('adb', {}).get('device_id', 'emulator-5554')
+    
+    while True:
+        try:
+             # Fast screenshot using exec-out screencap -p (PNG format really, but often works as MJPEG source if valid image headers)
+             # Actually screencap -p is PNG. MJPEG usually expects JPEG. 
+             # Let's try to pass it anyway or stream raw. 
+             # Creating a proper MJPEG stream without conversion might be tricky if browser expects JPEG.
+             # PNG is supported in multipart/x-mixed-replace by most browsers.
+             
+             process = subprocess.Popen(
+                 ['adb', '-s', device_id, 'exec-out', 'screencap', '-p'], 
+                 stdout=subprocess.PIPE, 
+                 stderr=subprocess.PIPE
+             )
+             frame, _ = process.communicate()
+             if frame:
+                 yield (b'--frame\r\n'
+                        b'Content-Type: image/png\r\n\r\n' + frame + b'\r\n')
+             
+             time.sleep(0.1)
+        except Exception:
+             time.sleep(1)
+
+@app.route('/video_feed/<session_id>')
+def video_feed(session_id):
+    """Video streaming route. Put this in the src attribute of an img tag."""
+    return Response(gen_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
 @app.route('/api/mobile/start', methods=['POST'])
 def start_mobile_test():
     """Start AI-powered mobile testing"""
@@ -228,7 +297,8 @@ def run_mobile_test_logic(session_id, apk_filepath, test_mode, credentials, test
         update_test_status(session_id, progress=30, message='Initializing AI agent...')
         
         if AI_AVAILABLE:
-            gemini_api_key = os.getenv('GEMINI_API_KEY', 'AIzaSyC41RoUNUYb_q6hJERw99DJr3f-oz2OMRc')
+            # Force strict API key usage
+            gemini_api_key = 'AIzaSyDeET9gqOoeQ1Kb84LZEC5dhsm6Tm7fUN4'
             ai_agent = AITestingAgent(config, gemini_api_key)
             
             if test_mode == 'guided' and test_context:
@@ -238,7 +308,11 @@ def run_mobile_test_logic(session_id, apk_filepath, test_mode, credentials, test
             if credentials.get('hasLogin') and credentials.get('username'):
                 ai_agent.app_context['credentials'] = credentials
             
-            test_executor = AITestExecutor(config, ui_explorer, apk_installer, ai_agent)
+            # Define callback for granular updates
+            def log_callback(message):
+                update_test_status(session_id, message=message)
+            
+            test_executor = AITestExecutor(config, ui_explorer, apk_installer, ai_agent, status_callback=log_callback)
         else:
             from agents.mobile.test_executor import TestExecutor
             test_executor = TestExecutor(config, ui_explorer, apk_installer)
@@ -373,6 +447,19 @@ def update_test_status(session_id, status=None, progress=None, message=None, res
             if message: active_tests[session_id]['message'] = message
             if results: active_tests[session_id]['results'] = results
             if error: active_tests[session_id]['error'] = error
+            
+            # Emit SocketIO event
+            try:
+                socketio.emit('test_update', {
+                    'session_id': session_id,
+                    'status': active_tests[session_id].get('status'),
+                    'progress': active_tests[session_id].get('progress'),
+                    'message': active_tests[session_id].get('message'),
+                    'results': active_tests[session_id].get('results'),
+                    'error': active_tests[session_id].get('error')
+                })
+            except Exception as e:
+                logger.error(f"Socket emit failed: {e}")
 
 @app.route('/api/test/status/<session_id>', methods=['GET'])
 def get_test_status(session_id):
@@ -425,4 +512,4 @@ if __name__ == '__main__':
     logger.add("api_server.log", rotation="10 MB", level="DEBUG")
     logger.info("Starting Local AI Testing Platform API")
     # Disable reloader to prevent restarts when screenshots/reports are generated
-    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000, threaded=True)
+    socketio.run(app, debug=True, use_reloader=False, host='0.0.0.0', port=5000)

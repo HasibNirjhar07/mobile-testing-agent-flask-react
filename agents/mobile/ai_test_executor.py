@@ -8,16 +8,25 @@ from loguru import logger
 from .ai_agent_core import AITestingAgent
 
 class AITestExecutor:
-    def __init__(self, config, ui_explorer, apk_installer, ai_agent: AITestingAgent):
+    def __init__(self, config, ui_explorer, apk_installer, ai_agent: AITestingAgent, status_callback=None):
         self.config = config
         self.ui = ui_explorer
         self.apk = apk_installer
         self.ai = ai_agent
+        self.status_callback = status_callback
         self.test_results = []
         self.action_history = []
         self.max_depth = config['testing']['max_exploration_depth']
         self.stuck_threshold = 3
         self.stuck_count = 0
+    
+    def log(self, message, is_update=False):
+        """Log to console and optionally to callback"""
+        logger.info(message)
+        if self.status_callback and is_update:
+            # Clean up message for UI
+            clean_message = message.replace('🤖 ', '').replace('✅ ', '').replace('📊 ', '')
+            self.status_callback(message=clean_message)
     
     def run_tests(self, documentation=None):
         """Run AI-powered automated testing"""
@@ -84,11 +93,11 @@ class AITestExecutor:
         }
         
         # AI analyzes app
+        self.log("AI Analyzer: Scanning app structure...", True)
         strategy = self.ai.analyze_app_structure(apk_info, initial_screenshot)
         
-        logger.info(f"📱 App Type: {strategy.get('app_type', 'Unknown')}")
-        logger.info(f"🎯 Core Features: {', '.join(strategy.get('core_features', [])[:5])}")
-        logger.info(f"⚡ Critical Scenarios: {len(strategy.get('critical_scenarios', []))}")
+        self.log(f"Analysis Complete: App Type: {strategy.get('app_type', 'Unknown')}", True)
+        self.log(f"Identified Features: {', '.join(strategy.get('core_features', [])[:3])}...", True)
         
         return strategy
     
@@ -121,6 +130,7 @@ class AITestExecutor:
             screenshot_before = self.ui.take_screenshot(f"before_action_{exploration_count}")
             
             # AI decides next action
+            self.log(f"AI: Evaluating {len(elements)} UI elements...", True)
             decision = self.ai.decide_next_action(
                 screenshot_before,
                 elements,
@@ -128,7 +138,7 @@ class AITestExecutor:
             )
             
             if not decision:
-                logger.warning("AI couldn't make decision, using fallback")
+                self.log("AI uncertain, using fallback strategy", True)
                 decision = self._get_fallback_action(elements)
             
             # Execute decision
@@ -142,6 +152,7 @@ class AITestExecutor:
                 
                 # AI analyzes transition
                 if screenshot_before and screenshot_after:
+                    self.log("AI: Verifying state transition...", True)
                     analysis = self.ai.analyze_screen_transition(
                         screenshot_before,
                         screenshot_after,
@@ -224,8 +235,7 @@ class AITestExecutor:
             
             if action_type == 'tap':
                 element_desc = element['text'] or element['content_desc'] or element['type']
-                logger.info(f"👆 AI Decision: Tap '{element_desc}'")
-                logger.info(f"💭 Reasoning: {decision.get('reasoning', 'N/A')}")
+                self.log(f"ACTION: Tap '{element_desc}' (Reason: {decision.get('reasoning', 'N/A')})", True)
                 
                 success = self.ui.tap_element(element)
                 self._record_action(
@@ -241,8 +251,7 @@ class AITestExecutor:
                 test_value = decision.get('test_value', 'Test Input')
                 element_desc = element['text'] or element['resource_id'] or element['type']
                 
-                logger.info(f"⌨️  AI Decision: Input '{test_value}' into {element_desc}")
-                logger.info(f"💭 Reasoning: {decision.get('reasoning', 'N/A')}")
+                self.log(f"ACTION: Type '{test_value}' into {element_desc}", True)
                 
                 success = self.ui.input_text(element, test_value)
                 self._record_action(

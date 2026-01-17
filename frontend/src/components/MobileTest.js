@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Upload,
   Play,
@@ -9,8 +9,11 @@ import {
   CheckCircle,
   Loader,
   RefreshCw,
+  Terminal,
+  Cpu
 } from 'lucide-react';
 import clsx from 'clsx';
+import io from 'socket.io-client';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -26,37 +29,57 @@ const MobileTest = () => {
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [testProgress, setTestProgress] = useState(0);
   const [testMessage, setTestMessage] = useState('');
+  const [logs, setLogs] = useState([]);
   const [error, setError] = useState(null);
+  const logsEndRef = useRef(null);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
 
   useEffect(() => {
-    let interval;
+    let socket;
     if (testing && sessionId) {
-      interval = setInterval(async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/test/status/${sessionId}`);
-          const data = await response.json();
+      // Connect to WebSocket
+      socket = io(API_BASE_URL);
+      
+      socket.on('connect', () => {
+          console.log("Connected to live updates");
+      });
 
-          setTestProgress(data.progress || 0);
-          setTestMessage(data.message || 'Testing...');
+      socket.on('test_update', (data) => {
+        if (data.session_id === sessionId) {
+          setTestMessage(data.message || 'Processing...');
+          if (data.message) {
+              const timestamp = new Date().toLocaleTimeString().split(' ')[0];
+              // Only add if it's not a duplicate of the last message
+              setLogs(prev => {
+                  if (prev.length === 0) return [...prev, { time: timestamp, text: data.message }];
+                  
+                  const lastLog = prev[prev.length - 1];
+                  const lastText = typeof lastLog === 'string' ? lastLog : lastLog.text;
+                  
+                  if (lastText === data.message) return prev;
+                  return [...prev, { time: timestamp, text: data.message }];
+              });
+          }
 
           if (data.status === 'completed') {
             setTestResults(data.results);
             setTesting(false);
             setStep(4);
-            clearInterval(interval);
+            socket.disconnect();
           } else if (data.status === 'failed') {
             setError(data.message || 'Testing failed');
-            setTesting(false);
-            clearInterval(interval);
+            setTesting(false); 
+            socket.disconnect();
           }
-        } catch (err) {
-          console.error('Error polling status:', err);
         }
-      }, 2000);
+      });
     }
-    return () => { if (interval) clearInterval(interval); };
+    return () => { if (socket) socket.disconnect(); };
   }, [testing, sessionId]);
 
   const handleFileUpload = async (e) => {
@@ -119,7 +142,7 @@ const MobileTest = () => {
 
     setError(null);
     setTesting(true);
-    setTestProgress(0);
+    setLogs([]);
     setTestMessage('Initializing AI core...');
 
     try {
@@ -156,11 +179,11 @@ const MobileTest = () => {
   const resetTest = () => {
     setStep(1); setApkFile(null); setSessionId(null); setApkFilepath(null);
     setTestResults(null); setTestMode('auto'); setCredentials({ hasLogin: false, username: '', password: '', email: '' });
-    setTestContext(''); setAiInstructions(''); setError(null);
+    setTestContext(''); setAiInstructions(''); setError(null); setLogs([]);
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between pb-6 border-b border-white/5">
          <div>
@@ -187,7 +210,7 @@ const MobileTest = () => {
         </div>
       )}
 
-       <main className="glass-panel rounded-2xl p-8 relative overflow-hidden min-h-[400px]">
+       <main className={clsx("glass-panel rounded-2xl relative overflow-hidden min-h-[400px]", testing ? "p-0" : "p-8")}>
           {/* Step 1: Upload APK */}
           {step === 1 && (
             <div className="flex flex-col items-center justify-center h-full py-12">
@@ -276,16 +299,62 @@ const MobileTest = () => {
             </div>
           )}
 
-          {/* Testing Progress */}
+          {/* Testing Progress - LIVE VIEW */}
           {testing && (
-            <div className="text-center py-20">
-              <div className="relative w-24 h-24 mx-auto mb-8">
-                 <div className="absolute inset-0 border-4 border-zinc-800 rounded-full"></div>
-                 <div className="absolute inset-0 border-4 border-electric-purple border-t-transparent rounded-full animate-spin"></div>
-                 <Brain className="absolute inset-0 m-auto text-white animate-pulse" size={32} />
-              </div>
-              <h2 className="text-xl font-mono text-white mb-2 uppercase tracking-widest">{testMessage}</h2>
-              <p className="text-zinc-500 font-mono text-xs">Analyzing application logic...</p>
+            <div className="h-[600px] flex">
+                <div className="flex-1 bg-black flex items-center justify-center relative border-r border-white/10">
+                   {/* Live Stream */}
+                   <img 
+                      src={`${API_BASE_URL}/video_feed/${sessionId}`} 
+                      className="max-h-full max-w-full object-contain"
+                      alt="Agent Live Feed"
+                      onError={(e) => { e.target.style.display='none'; }}
+                   />
+                   <div className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded animate-pulse flex items-center gap-2">
+                       <span className="w-2 h-2 bg-white rounded-full"></span> LIVE
+                   </div>
+                </div>
+                
+                <div className="w-[400px] bg-zinc-950 flex flex-col border-l border-white/5">
+                   <div className="p-4 border-b border-white/5 bg-zinc-900/50 flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-electric-purple font-mono text-sm">
+                           <Terminal size={14} /> AGENT LOGS
+                       </div>
+                       <div className="flex items-center gap-2 text-zinc-500 text-xs font-mono">
+                           <Cpu size={14} /> ACTIVE
+                       </div>
+                   </div>
+                   <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-3">
+                       {logs.map((log, i) => {
+                           // Determine color based on content
+                           let colorClass = "text-zinc-400";
+                           let prefix = "➜";
+                           if (typeof log === 'string') return <div key={i} className="text-zinc-500">{log}</div>;
+                           
+                           if (log.text.startsWith("AI:")) { colorClass = "text-blue-400"; prefix = "🧠"; }
+                           else if (log.text.startsWith("ACTION:")) { colorClass = "text-emerald-400"; prefix = "⚡"; }
+                           else if (log.text.startsWith("Analysis")) { colorClass = "text-purple-400"; prefix = "🔎"; }
+                           else if (log.text.includes("WARN")) { colorClass = "text-amber-400"; prefix = "⚠️"; }
+                           
+                           return (
+                               <div key={i} className={clsx("break-words border-b border-white/5 pb-2", colorClass)}>
+                                   <div className="flex gap-2 opacity-50 text-[10px] mb-1">
+                                       <span>{log.time}</span>
+                                       <span>|</span>
+                                       <span>{prefix}</span>
+                                   </div>
+                                   <div className="pl-4">{log.text}</div>
+                               </div>
+                           );
+                       })}
+                       <div ref={logsEndRef} />
+                   </div>
+                   <div className="p-4 border-t border-white/5 bg-zinc-900/50">
+                       <div className="flex items-center gap-2 text-zinc-300 text-sm font-medium animate-pulse">
+                           <Loader size={14} className="animate-spin" /> {testMessage}
+                       </div>
+                   </div>
+                </div>
             </div>
           )}
 

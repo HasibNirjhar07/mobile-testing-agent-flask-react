@@ -24,24 +24,7 @@ const SidebarItem = ({ to, icon: Icon, label, isActive }) => (
   </NavLink>
 );
 
-const LiveTerminal = () => {
-  return (
-    <div className="hidden xl:flex flex-col w-80 border-l border-white/5 bg-noir-800/30 p-4 font-mono text-xs">
-      <div className="flex items-center gap-2 text-zinc-500 mb-4 pb-4 border-b border-white/5">
-        <TerminalIcon size={14} />
-        <span className="uppercase tracking-widest">System Logs</span>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-3 opacity-70">
-        <div className="text-emerald-500">➜ [SYSTEM] Agent Initialized...</div>
-        <div className="text-zinc-400">[INFO] Connected to ADB (Pixel_6)</div>
-        <div className="text-electric-blue">[NETWORK] Analyzing 192.168.1.5...</div>
-        <div className="text-zinc-400">[WAIT] Waiting for DOM content...</div>
-        <div className="text-amber-500">[WARN] High latency detected on /api/v1</div>
-        <div className="text-zinc-500 animate-pulse">_</div>
-      </div>
-    </div>
-  );
-};
+
 
 const DashboardLayout = () => {
   const location = useLocation();
@@ -126,8 +109,7 @@ const DashboardLayout = () => {
         </div>
       </main>
 
-      {/* Right Side Terminal (Optional Futuristic Touch) */}
-      <LiveTerminal />
+      {/* Right Side Terminal Removed */}
     </div>
   );
 };
