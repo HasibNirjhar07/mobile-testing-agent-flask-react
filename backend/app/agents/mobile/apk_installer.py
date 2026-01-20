@@ -14,7 +14,7 @@ class APKInstaller:
         self.main_activity = None
     
     def install(self, apk_path):
-        """Install APK on device"""
+        """Install APK on device using push-then-install method for reliability"""
         logger.info(f"Installing APK: {apk_path}")
         
         try:
@@ -28,34 +28,62 @@ class APKInstaller:
             # Uninstall if already exists
             self.uninstall()
             
-            # Install APK
-            result = subprocess.run(
-                ["adb", "-s", self.device_id, "install", "-r", apk_path],
-                capture_output=True,
-                encoding="utf-8",
-                errors="ignore",
-                text=True,
-                timeout=120
+            # Strategy 1: Push then Install (Avoids Streaming issues)
+            remote_path = f"/data/local/tmp/temp_install_{int(time.time())}.apk"
+            logger.info(f"Pushing APK to {remote_path}...")
+            
+            push_result = subprocess.run(
+                ["adb", "-s", self.device_id, "push", apk_path, remote_path],
+                capture_output=True, text=True, encoding='utf-8', errors='ignore'
             )
             
-            if "Success" in result.stdout:
+            if push_result.returncode != 0:
+                logger.error(f"Failed to push APK: {push_result.stderr}")
+                return self._install_fallback(apk_path)
+
+            logger.info("Installing from device storage...")
+            # -r: replace existing
+            # -t: allow test packages
+            # -g: grant all runtime permissions
+            install_result = subprocess.run(
+                ["adb", "-s", self.device_id, "shell", "pm", "install", "-r", "-t", "-g", remote_path],
+                capture_output=True, text=True, encoding='utf-8', errors='ignore'
+            )
+            
+            # Cleanup remote file
+            subprocess.run(["adb", "-s", self.device_id, "shell", "rm", remote_path])
+            
+            if "Success" in install_result.stdout:
                 logger.info("APK installed successfully")
                 time.sleep(2)
-                
-                # Grant permissions immediately
                 self.grant_permissions()
-                
-                # Perform warm-up launches to prevent first-run crashes
-                logger.info("Performing warm-up launches to stabilize app...")
                 self._warmup_app()
-                
                 return True
             else:
-                logger.error(f"Installation failed: {result.stdout}")
-                return False
+                logger.warning(f"Push-install failed: {install_result.stdout}. Trying fallback...")
+                return self._install_fallback(apk_path)
                 
         except Exception as e:
             logger.error(f"Failed to install APK: {str(e)}")
+            return False
+
+    def _install_fallback(self, apk_path):
+        """Fallback to standard adb install"""
+        try:
+            result = subprocess.run(
+                ["adb", "-s", self.device_id, "install", "-r", "-t", "-g", apk_path],
+                capture_output=True, text=True, encoding='utf-8', errors='ignore', timeout=120
+            )
+            if "Success" in result.stdout:
+                logger.info("Fallback install successful")
+                time.sleep(2)
+                self.grant_permissions()
+                self._warmup_app()
+                return True
+            logger.error(f"Fallback install failed: {result.stdout}")
+            return False
+        except Exception as e:
+            logger.error(f"Fallback error: {e}")
             return False
     
     def _warmup_app(self):

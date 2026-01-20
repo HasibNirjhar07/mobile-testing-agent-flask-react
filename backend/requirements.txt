@@ -1,0 +1,15 @@
+flask
+flask-cors
+flask-socketio
+simple-websocket
+python-socketio
+eventlet
+werkzeug
+loguru
+google-generativeai
+pure-python-adb
+Pillow
+psutil
+python-dotenv
+requests
+pyyaml
